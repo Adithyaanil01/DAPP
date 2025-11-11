@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Motivator DApp — Quotes</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Poppins:wght@300;600&display=swap');
+
+    :root{
+      --accent: #00d8ff;
+      --accent2: #7b61ff;
+      --card-bg: rgba(6,8,15,0.7);
+      --glass: rgba(255,255,255,0.04);
+    }
+
+    html,body{height:100%;margin:0;font-family:"Poppins",sans-serif;color:#e9f6ff;}
+    body{
+      display:flex;align-items:center;justify-content:center;
+      background: radial-gradient(circle at 10% 10%, rgba(0,216,255,0.06), transparent 10%),
+                  linear-gradient(180deg,#020617 0%, #060913 100%),
+                  url('https://images.unsplash.com/photo-1518779578993-ec3579fee39f?auto=format&fit=crop&w=2000&q=80');
+      background-size:cover;
+      padding:36px;
+    }
+
+    .wrap{width:960px; max-width:96%; display:grid; grid-template-columns: 1fr 380px; gap:28px; align-items:start;}
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.04);
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      border-radius:14px; padding:22px;
+      backdrop-filter: blur(6px);
+    }
+
+    header.hdr { grid-column: 1 / -1; display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; }
+    h1{margin:0;font-family:'Orbitron',sans-serif;color:var(--accent); text-shadow:0 0 12px rgba(0,216,255,0.12);}
+    .sub{font-size:0.95rem;color:#cfefff;opacity:0.9}
+
+    .controls { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    button { cursor:pointer; border: none; padding:10px 14px; border-radius:10px; font-weight:600; color:white; background: linear-gradient(90deg,var(--accent),var(--accent2)); box-shadow:0 6px 18px rgba(11,20,40,0.5); }
+    button.ghost { background: transparent; border:1px solid rgba(255,255,255,0.06); color:#cfefff; box-shadow:none; }
+    input[type="text"]{ width:100%; padding:10px 12px; border-radius:8px; border:none; background:var(--glass); color:#eaf9ff; outline:none; margin-bottom:8px; }
+
+    .status { font-size:0.9rem; color:#bfefff; margin-top:8px; }
+    .meta { display:flex; gap:12px; flex-direction:column; margin-top:8px; }
+
+    .quotes-list { display:flex; flex-direction:column; gap:8px; max-height:62vh; overflow:auto; padding-right:6px; }
+    .quote-card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:12px; border-radius:10px; border-left:4px solid var(--accent); }
+    .quote-text { font-style:italic; color:#eaf9ff; margin-bottom:8px; }
+    .quote-meta { font-size:0.85rem; color:#a9dff6; display:flex; align-items:center; gap:10px; }
+
+    .panel.right { position:relative; min-width:300px; }
+    .big { font-size:1.02rem; font-weight:600; color:#dff8ff; margin: 8px 0 12px 0; }
+
+    .txline { font-size:0.9rem; color:#9bd7ff; margin-top:6px; word-break:break-all; }
+
+    .small { font-size:0.85rem; color:#cbdfea; }
+
+    footer.foot { grid-column:1/-1; text-align:center; margin-top:14px; color:#93cce8; font-size:0.9rem; opacity:0.9; }
+
+    /* simple fade */
+    .fadeIn { animation: fadeIn 0.45s ease both; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hdr">
+      <div>
+        <h1>Motivator</h1>
+        <div class="sub">Add & browse motivational quotes on-chain — connected to your contract</div>
+      </div>
+      <div style="text-align:right">
+        <div id="networkLabel" class="small">Network: <strong id="netName">—</strong></div>
+        <div id="accountLabel" class="small">Account: <strong id="acc">—</strong></div>
+      </div>
+    </header>
+
+    <!-- left: main -->
+    <section class="panel">
+      <div class="meta">
+        <div class="big">Add a new quote</div>
+        <input id="quoteInput" type="text" placeholder="Type something uplifting..." />
+        <div class="controls">
+          <button id="addBtn">➕ Add Quote</button>
+          <button id="randomBtn" class="ghost">Random Quote</button>
+          <button id="loadBtn" class="ghost"> Load All Quotes</button>
+          <button id="connectBtn" class="ghost"> Connect Wallet</button>
+        </div>
+        <div id="status" class="status">Status: Not connected</div>
+      </div>
+
+      <hr style="border:none;height:12px">
+
+      <div class="big">Quotes</div>
+      <div id="quotesList" class="quotes-list"></div>
+    </section>
+
+    <!-- right: info -->
+    <aside class="panel right">
+      <div class="big">Contract</div>
+      <div class="small">Address:</div>
+      <div id="contractAddr" class="txline">0x4B3C76DEac0B79EB0847a94d43C6B7DD09193468</div>
+
+      <div style="margin-top:12px" class="small">Total quotes:</div>
+      <div id="totalCount" style="font-weight:700;color:#dff8ff;margin-top:4px">—</div>
+
+      <div style="margin-top:12px" class="small">Last tx:</div>
+      <div id="lastTx" class="txline">—</div>
+
+      <div style="margin-top:18px">
+        <div class="small">Notes</div>
+        <div class="small" style="margin-top:6px">Make sure MetaMask is unlocked & on the same network used to deploy the contract (Hoodi or the network shown above).</div>
+      </div>
+    </aside>
+
+    <footer class="foot">Motivator DApp — Adithya Anil </footer>
+  </div>
+
+  <script>
+  (function(){
+    // Contract address (your deployed Motivator contract)
+    const CONTRACT_ADDRESS = "0x4B3C76DEac0B79EB0847a94d43C6B7DD09193468";
+
+    // Minimal ABI (function fragments)
+    const CONTRACT_ABI = [
+      "function addQuote(string _text) public",
+      "function getTotalQuotes() public view returns (uint256)",
+      "function getQuote(uint256) public view returns (string, address)",
+      "function getRandomQuote() public view returns (string, address)"
+    ];
+
+    // DOM refs
+    const connectBtn = document.getElementById("connectBtn");
+    const addBtn = document.getElementById("addBtn");
+    const loadBtn = document.getElementById("loadBtn");
+    const randomBtn = document.getElementById("randomBtn");
+    const quoteInput = document.getElementById("quoteInput");
+    const statusEl = document.getElementById("status");
+    const netNameEl = document.getElementById("netName");
+    const accEl = document.getElementById("acc");
+    const quotesListEl = document.getElementById("quotesList");
+    const totalCountEl = document.getElementById("totalCount");
+    const contractAddrEl = document.getElementById("contractAddr");
+    const lastTxEl = document.getElementById("lastTx");
+
+    let provider = null;
+    let signer = null;
+    let contract = null;
+    let currentAccount = null;
+
+    // Helper: update status
+    function setStatus(txt){
+      statusEl.innerText = "Status: " + txt;
+    }
+
+    // Format short address
+    function short(addr){
+      if(!addr) return "—";
+      return addr.slice(0,6) + "..." + addr.slice(-4);
+    }
+
+    // Show quote card
+    function pushQuoteCard(text, author){
+      const div = document.createElement("div");
+      div.className = "quote-card fadeIn";
+      div.innerHTML = `<div class="quote-text">“${text}”</div>
+                       <div class="quote-meta">Author: <strong>${short(author)}</strong> &nbsp; <span style="opacity:0.8">${author}</span></div>`;
+      quotesListEl.prepend(div);
+    }
+
+    // Connect + initialize provider + contract
+    async function connectWallet(){
+      try {
+        if(typeof window.ethereum === 'undefined'){
+          alert("MetaMask not found. Install MetaMask or open this page in the browser where MetaMask is installed.");
+          return;
+        }
+
+        // Request accounts
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+        // Initialize provider & signer
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+
+        // reload on account or chain change
+        window.ethereum.on('accountsChanged', accounts => { window.location.reload(); });
+        window.ethereum.on('chainChanged', chainId => { window.location.reload(); });
+
+        // set contract
+        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+        // display account and network
+        currentAccount = await signer.getAddress();
+        accEl.innerText = short(currentAccount);
+
+        const network = await provider.getNetwork();
+        netNameEl.innerText = network.name + " (Chain " + network.chainId + ")";
+
+        setStatus("Connected — ready");
+        connectBtn.innerText = "Connected: " + short(currentAccount);
+        connectBtn.disabled = true;
+
+        // load totals
+        await refreshTotal();
+        await loadRecent(6); // preload up to 6 latest
+      } catch (err) {
+        console.error("connectWallet:", err);
+        alert("Connection failed: " + (err.message || err));
+        setStatus("Connection failed");
+      }
+    }
+
+    // Add a new quote (send tx)
+    async function addQuote(){
+      if(!contract){
+        alert("Connect wallet first.");
+        return;
+      }
+      const text = quoteInput.value.trim();
+      if(!text){ alert("Type a quote first."); return; }
+
+      try {
+        setStatus("Sending transaction...");
+        const tx = await contract.addQuote(text);
+        lastTxEl.innerText = tx.hash;
+        // wait for confirmation
+        setStatus("Waiting for confirmation...");
+        await tx.wait();
+        setStatus("Transaction confirmed!");
+        quoteInput.value = "";
+        await refreshTotal();
+        await loadRecent(1); // show new added
+      } catch (err) {
+        console.error("addQuote:", err);
+        alert("Transaction failed: " + (err.message || err));
+        setStatus("Tx failed");
+      }
+    }
+
+    // Load total count
+    async function refreshTotal(){
+      if(!contract) return;
+      try {
+        const total = await contract.getTotalQuotes();
+        totalCountEl.innerText = total.toString();
+      } catch (err) {
+        console.error("refreshTotal:", err);
+      }
+    }
+
+    // Load all quotes (or limited)
+    async function loadAll(){
+      if(!contract){ alert("Connect first."); return; }
+      setStatus("Loading all quotes...");
+      quotesListEl.innerHTML = "";
+      try {
+        const totalBN = await contract.getTotalQuotes();
+        const total = totalBN.toNumber();
+        if(total === 0){
+          setStatus("No quotes stored yet.");
+          return;
+        }
+        // iterate (careful: for large arrays this is expensive — good for demo)
+        for(let i = 0; i < total; i++){
+          const q = await contract.getQuote(i);
+          // q is [string, address]
+          pushQuoteCard(q[0], q[1]);
+        }
+        setStatus("Loaded " + total + " quotes.");
+      } catch (err){
+        console.error("loadAll:", err);
+        alert("Failed to load quotes: " + (err.message || err));
+        setStatus("Load failed");
+      }
+    }
+
+    // Load recent n quotes (from end)
+    async function loadRecent(n){
+      if(!contract) return;
+      try {
+        const totalBN = await contract.getTotalQuotes();
+        const total = totalBN.toNumber();
+        if(total === 0) { setStatus("No quotes yet"); return; }
+        const start = Math.max(0, total - n);
+        for(let i = start; i < total; i++){
+          const q = await contract.getQuote(i);
+          pushQuoteCard(q[0], q[1]);
+        }
+      } catch (err){
+        console.error("loadRecent:", err);
+      }
+    }
+
+    // Get random quote (view)
+    async function getRandom(){
+      if(!contract){ alert("Connect first."); return; }
+      try {
+        setStatus("Getting random quote...");
+        const q = await contract.getRandomQuote();
+        pushQuoteCard(q[0], q[1]);
+        setStatus("Random quote shown.");
+      } catch (err){
+        console.error("getRandom:", err);
+        alert("Failed to get random: " + (err.message || err));
+        setStatus("Random failed");
+      }
+    }
+
+    // Wire events
+    connectBtn.onclick = connectWallet;
+    addBtn.onclick = addQuote;
+    loadBtn.onclick = loadAll;
+    randomBtn.onclick = getRandom;
+
+    // On load, show contract address and hint
+    (function init(){
+      contractAddrEl.innerText = CONTRACT_ADDRESS;
+      setStatus("Ready — not connected");
+    })();
+
+  })();
+  </script>
+</body>
+</html>
