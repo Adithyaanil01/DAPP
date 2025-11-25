@@ -65,7 +65,7 @@ This project was built for academic demonstration to showcase how smart contract
    python -m http.server
 
 
-##Network: Hoodi Ethereum Test Network
+Network: Hoodi Ethereum Test Network
 
-##Contract Address: 0x4B3C76DEac0B79EB0847a94d43C6B7DD09193468
+Contract Address: 0x4B3C76DEac0B79EB0847a94d43C6B7DD09193468
 
