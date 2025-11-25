@@ -15,6 +15,26 @@ This project was built for academic demonstration to showcase how smart contract
 - Display total number of quotes stored
 - Fully decentralized storage (no database, no backend server)
 
+## Smart Contract Deployment Steps
+
+1. Open Remix IDE in your browser:  
+   https://remix.ethereum.org
+
+2. Create a new file named `Motivator.sol` and paste the smart contract code.
+
+3. Compile the contract using Solidity compiler version `0.8.20`.
+
+4. Select "Deploy & Run Transactions" tab.
+
+5. Connect MetaMask to Remix using the "Injected Provider" environment.
+
+6. Choose the network (same as MetaMask test network).
+
+7. Click **Deploy**.
+
+8. Copy the deployed contract address for use in the frontend.
+
+
 
 ## Architecture Overview
 
@@ -43,3 +63,8 @@ This project was built for academic demonstration to showcase how smart contract
 
    ```bash
    python -m http.server
+
+
+Network: Hoodi Ethereum Test Network
+Contract Address: 0x4B3C76DEac0B79EB0847a94d43C6B7DD09193468
+
